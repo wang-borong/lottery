@@ -5,12 +5,12 @@
    Unless required by applicable law or agreed to in writing, this
    software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
    CONDITIONS OF ANY KIND, either express or implied.
-*/
-
+*/ 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_log.h"
+#include "esp_netif.h"
 #include "esp_system.h"
 #include "nvs_flash.h"
 
@@ -20,6 +20,7 @@
 #include "7-segment-led-display.h"
 #include "crawl_web.h"
 
+static const char *TAG = "MAIN";
 
 void app_main()
 {
@@ -27,32 +28,38 @@ void app_main()
     int fs_ok = 1;
 
     ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_netif_init());
 
     // connect to wifi by data stored in fs
     if (fs_init()) {
 	fs_ok = 0;
+	ESP_LOGI(TAG, "fs init failed, go to esptouch");
 	goto esptouch;
     }
     if (fs_read_wifi_info(&wi)) {
+	ESP_LOGI(TAG, "can not read wifi info from fs, go to esptouch");
 	goto esptouch;
     } else {
 	// connect to wifi with stored ap data
 	if (wifi_init_sta(&wi))
 	    goto esptouch;
+	ESP_LOGI(TAG, "read wifi info from fs, go to connected");
 	goto connected;
     }
 
   esptouch:
     // connect to wifi by esptouch
-    initialise_wifi(&wi);
+    ESP_LOGI(TAG, "fs_ok: %d", fs_ok);
     if (!fs_ok)
 	fs_init();
-    fs_write_wifi_info(&wi);
+    initialise_wifi(&wi);
 
   connected:
     crawl_lottery_data(dis_val);
 
-    display_init();
+    //display_init();
+
+    return;
 }
 
 // :set tabstop=4 shiftwidth=4 smarttab
