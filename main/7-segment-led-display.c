@@ -83,7 +83,7 @@ static void display_one_bit(dis_val_t dis_bit, uint8_t pos)
     lock_595_data();
 }
 
-static void display_four_bit(dis_val_t * dis_bits)
+static void display_four_bit(dis_val_t *dis_bits)
 {
     int i;
     for (i = 0; i < 8; i++)

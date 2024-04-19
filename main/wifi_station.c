@@ -89,7 +89,7 @@ int wifi_init_sta(struct wifi_info *wi)
     wifi_config_t wifi_config = {
 	.sta = {
 		.ssid = STA_WIFI_SSID,
-		.password = STA_WIFI_PASS},
+		.password = STA_WIFI_PASS },
     };
 
     memcpy(wifi_config.sta.ssid, wi->ssid, sizeof(wifi_config.sta.ssid));

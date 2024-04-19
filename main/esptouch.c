@@ -114,7 +114,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 	ESP_ERROR_CHECK(esp_wifi_set_config
 			(ESP_IF_WIFI_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_connect());
-    	fs_write_wifi_info(wi);
+	fs_write_wifi_info(wi);
     } else if (event_base == SC_EVENT
 	       && event_id == SC_EVENT_SEND_ACK_DONE) {
 	xEventGroupSetBits(s_wifi_event_group, ESPTOUCH_DONE_BIT);
