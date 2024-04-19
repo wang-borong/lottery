@@ -130,7 +130,8 @@ static char *extract_lottery_amount(char *lottery_data)
     const char *color_id = "color";
     char *color_pos = NULL;
     char *amount = NULL;
-    int len = 0 if ((color_pos = strstr(lottery_data, color_id)) != NULL) {
+
+    if ((color_pos = strstr(lottery_data, color_id)) != NULL) {
 	ESP_LOGI(TAG, "got color identifier");
 
 	/* I analyzed it, no more 50 bytes to get amount data */
