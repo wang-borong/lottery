@@ -14,7 +14,7 @@
 
 #include "7-segment-led-display.h"
 
-#define MAX_HTTP_OUTPUT_BUFFER 4096
+#define MAX_HTTP_OUTPUT_BUFFER 3000
 static const char *TAG = "HTTP_CLIENT";
 
 #define WEB_SERVER "www.js-lottery.com"
