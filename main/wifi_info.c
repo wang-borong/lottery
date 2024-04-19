@@ -61,12 +61,12 @@ int fs_init()
 int fs_read_wifi_info(struct wifi_info *wi)
 {
     // Check if destination file exists before operating
-    struct stat st;
-    if (stat("/spiffs/wifi_info.txt", &st) != 0)
-	return -1;
+//    struct stat st;
+//    if (stat("/spiffs/wifi_info.txt", &st) != 0)
+//	return -1;
 
     ESP_LOGI(TAG, "Opening WiFi info file");
-    FILE *f = fopen("/spiffs/wifi_info.txt", "w");
+    FILE *f = fopen("/spiffs/wifi_info.txt", "r");
     if (f == NULL) {
 	ESP_LOGE(TAG, "Failed to open WiFi info file for writing");
 	return -1;
@@ -87,15 +87,18 @@ int fs_read_wifi_info(struct wifi_info *wi)
     }
     ESP_LOGI(TAG, "WiFi passwd from file: '%s'", wi->passwd);
 
+    if (strlen(wi->ssid) == 0)
+        return -1;
+
     return 0;
 }
 
 int fs_write_wifi_info(struct wifi_info *wi)
 {
     // Check if destination file exists before operating
-    struct stat st;
-    if (stat("/spiffs/wifi_info.txt", &st) != 0)
-	return -1;
+//    struct stat st;
+//    if (stat("/spiffs/wifi_info.txt", &st) != 0)
+//	return -1;
 
     ESP_LOGI(TAG, "Opening WiFi info file");
     FILE *f = fopen("/spiffs/wifi_info.txt", "w");
@@ -103,6 +106,8 @@ int fs_write_wifi_info(struct wifi_info *wi)
 	ESP_LOGE(TAG, "Failed to open WiFi info file for writing");
 	return -1;
     }
+    ESP_LOGI(TAG, "WiFi ssid (%s) is written", wi->ssid);
+    ESP_LOGI(TAG, "WiFi passwd (%s) is written", wi->passwd);
     fprintf(f, "%s\n", wi->ssid);
     fprintf(f, "%s\n", wi->passwd);
     fclose(f);
