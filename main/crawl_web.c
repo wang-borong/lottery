@@ -35,6 +35,7 @@ static uint8_t led_v[] = {
     DIS_0, DIS_1, DIS_2, DIS_3, DIS_4, DIS_5, DIS_6, DIS_7,
     DIS_8, DIS_9
 };
+
 extern dis_val_t seg_dis_val[4];
 extern SemaphoreHandle_t xSemaphore;
 
@@ -46,13 +47,13 @@ static char *crawl_lottery_web(char *buf)
     const char dest[] = "fa fa-star";
 
     esp_tls_cfg_t *cfg = malloc(sizeof(esp_tls_cfg_t));
-	if(!cfg) {
-		ESP_LOGE(TAG, "cfg malloc is failed...");
-		data = NULL;
-		putchar('\n');		// JSON output doesn't have a newline at end
+    if (!cfg) {
+	ESP_LOGE(TAG, "cfg malloc is failed...");
+	data = NULL;
+	putchar('\n');		// JSON output doesn't have a newline at end
 
-    	return data;
-	}
+	return data;
+    }
     cfg->cacert_pem_buf = js_lottery_com_root_cert_pem_start;
     cfg->cacert_pem_bytes =
 	js_lottery_com_root_cert_pem_end -
@@ -65,17 +66,17 @@ static char *crawl_lottery_web(char *buf)
     struct esp_tls *tls = esp_tls_conn_http_new(WEB_URL, cfg);
 
     if (tls != NULL) {
-		ESP_LOGI(TAG, "Connection established...");
+	ESP_LOGI(TAG, "Connection established...");
     } else {
-		ESP_LOGE(TAG, "Connection failed...");
-		data = NULL;
-		goto exit;
+	ESP_LOGE(TAG, "Connection failed...");
+	data = NULL;
+	goto exit;
     }
 
     size_t written_bytes = 0;
     do {
 	ret = esp_tls_conn_write(tls, REQUEST + written_bytes,
-			       strlen(REQUEST) - written_bytes);
+				 strlen(REQUEST) - written_bytes);
 	if (ret >= 0) {
 	    ESP_LOGI(TAG, "%d bytes written", ret);
 	    written_bytes += ret;
@@ -161,11 +162,11 @@ static char *extract_lottery_amount(char *lottery_data)
 	    }
 	}
     } else {
-		ESP_LOGE(TAG, "wrong lottery_data");
-		printf("%s\n", lottery_data);
-		return NULL;
+	ESP_LOGE(TAG, "wrong lottery_data");
+	printf("%s\n", lottery_data);
+	return NULL;
     }
-	return amount;
+    return amount;
 }
 
 
@@ -173,32 +174,34 @@ static void amount_to_led_bits(char *amount, dis_val_t *dis_val)
 {
     int i;
     char b;
-	dis_val_t tmp;
+    dis_val_t tmp;
     int dot = 0;
     int len = strlen(amount);
 
     for (i = 0; i < len; i++) {
-		if(i < (len -1)) {
-			b = amount[len - 1 - i - dot];
-		} else {
-			b = amount[len - 1 - i];
-		}
-		if (b == '.') {
-			dot = 1;
-			b = amount[len - 1 - i - dot];	// if it has dot, it must have number
-			tmp = led_v[b - 0x30] & DIS_Dot;
-		} else {
-			tmp = led_v[b - 0x30];
-		}
-		dis_val[len - i - 1] = tmp;
+	if (i < (len - 1)) {
+	    b = amount[len - 1 - i - dot];
+	} else {
+	    b = amount[len - 1 - i];
+	}
+	if (b == '.') {
+	    dot = 1;
+	    b = amount[len - 1 - i - dot];	// if it has dot, it must have number
+	    tmp = led_v[b - 0x30] & DIS_Dot;
+	} else {
+	    tmp = led_v[b - 0x30];
+	}
+	dis_val[len - i - 1] = tmp;
     }
+
     if (len == 4)
-		dis_val[0] = led_v[0];
+	dis_val[0] = DIS_Blank;
+
 #if 0
-	printf("dis_val[0]: 0x%02x\n", dis_val[0]);
-	printf("dis_val[1]: 0x%02x\n", dis_val[1]);
-	printf("dis_val[2]: 0x%02x\n", dis_val[2]);
-	printf("dis_val[3]: 0x%02x\n", dis_val[3]);
+    printf("dis_val[0]: 0x%02x\n", dis_val[0]);
+    printf("dis_val[1]: 0x%02x\n", dis_val[1]);
+    printf("dis_val[2]: 0x%02x\n", dis_val[2]);
+    printf("dis_val[3]: 0x%02x\n", dis_val[3]);
 #endif
 }
 
@@ -206,7 +209,7 @@ static void amount_to_led_bits(char *amount, dis_val_t *dis_val)
 static void crawl_lottery_data_task(void *arg)
 {
     dis_val_t *dis_val = (dis_val_t *) arg;
-	char *amount ;
+    char *amount;
     char *lottery_data;
     // task stack is not sufficient, use heap by malloc
     char *web_page = malloc(MAX_HTTP_OUTPUT_BUFFER);
@@ -214,27 +217,27 @@ static void crawl_lottery_data_task(void *arg)
 
     /* loop forever per CRAWL_PER_SEC */
     while (1) {
-		
-		if ((lottery_data = crawl_lottery_web(web_page)) == NULL) {
-			//vTaskDelay(10 * 1000 / portTICK_RATE_MS);
-			continue;		// shouldn't occur
-		}
-		
-		if ((amount = extract_lottery_amount(lottery_data)) == NULL) {
-			continue;		// shouldn't occur
-		}
 
-		amount_to_led_bits(amount, dis_val);
-		// show me the led code data
-		ESP_LOG_BUFFER_HEX(TAG, dis_val, 4);
+	if ((lottery_data = crawl_lottery_web(web_page)) == NULL) {
+	    //vTaskDelay(10 * 1000 / portTICK_RATE_MS);
+	    continue;		// shouldn't occur
+	}
 
-		xSemaphoreTake( xSemaphore, portMAX_DELAY );
-        memcpy(seg_dis_val, dis_val, sizeof(seg_dis_val));
-        xSemaphoreGive( xSemaphore );
-		
-		memset(web_page, 0, MAX_HTTP_OUTPUT_BUFFER);
-		
-		vTaskDelay(CRAWL_PER_SEC * 1000 / portTICK_RATE_MS);
+	if ((amount = extract_lottery_amount(lottery_data)) == NULL) {
+	    continue;		// shouldn't occur
+	}
+
+	amount_to_led_bits(amount, dis_val);
+	// show me the led code data
+	ESP_LOG_BUFFER_HEX(TAG, dis_val, 4);
+
+	xSemaphoreTake(xSemaphore, portMAX_DELAY);
+	memcpy(seg_dis_val, dis_val, sizeof(seg_dis_val));
+	xSemaphoreGive(xSemaphore);
+
+	memset(web_page, 0, MAX_HTTP_OUTPUT_BUFFER);
+
+	vTaskDelay(CRAWL_PER_SEC * 1000 / portTICK_RATE_MS);
     }
 
     free(web_page);
