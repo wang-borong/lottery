@@ -11,7 +11,11 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
+#include "freertos/event_groups.h"
+#include "esp_log.h"
+#include "esp_netif.h"
+#include "esp_system.h"
+#include "nvs_flash.h"
 
 #include "driver/gpio.h"
 #include "driver/hw_timer.h"
@@ -31,7 +35,9 @@ static const char *TAG = "7-segment-led-display";
 #define TIMER_RELOAD      true
 
 dis_val_t dis_val[4] = { DIS_Blank, DIS_Blank, DIS_Blank, DIS_Blank };
-//dis_val_t dis_val[4] = { DIS_A, DIS_B, DIS_C, DIS_D };
+dis_val_t seg_dis_val[4] = { DIS_Blank, DIS_Blank, DIS_Blank, DIS_Blank };
+
+extern SemaphoreHandle_t xSemaphore;
 
 static void esp_gpio_init()
 {
@@ -93,15 +99,23 @@ static void display_one_bit(dis_val_t dis_bit, uint8_t pos)
 static void display_four_bit(dis_val_t *dis_bits)
 {
     int i;
-    for (i = 0; i < 4; i++)
-	    display_one_bit(dis_bits[i], i);
+    for (i = 0; i < 4; i++) {
+        display_one_bit(dis_bits[i], i);
+        os_delay_us(SEG_DALEY);
+    }
 }
 
 
 static void display_scan(void *arg)
 {
     dis_val_t *dis_val = (dis_val_t *) arg;
-    display_four_bit(dis_val);
+    while(1) {
+        xSemaphoreTake( xSemaphore, portMAX_DELAY );
+        display_four_bit(dis_val);
+        xSemaphoreGive( xSemaphore );
+        //printf("display_scan\n");
+        vTaskDelay(1);
+    }
 }
 
 
@@ -114,13 +128,26 @@ static void display_scan_timer_init()
   
 }
 
+#if 1
+
+void display_init()
+{
+    
+#define TASK_STACK_SIZE 4096
+#define TASK_PRIORTY 15		// Low priority numbers denote low priority tasks
+    esp_gpio_init();
+    xTaskCreate(&display_scan, "seg_display_task",
+		TASK_STACK_SIZE, (void *) seg_dis_val, TASK_PRIORTY, NULL);
+}
+
+#else
 void display_init()
 {
     ESP_LOGI(TAG, "Init display");
     esp_gpio_init();
     display_scan_timer_init();
 }
-
+#endif
 void display_deinit()
 {
     ESP_LOGI(TAG, "Deinit display");

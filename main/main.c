@@ -22,6 +22,9 @@
 
 static const char *TAG = "MAIN";
 extern dis_val_t dis_val[4];
+extern dis_val_t seg_dis_val[4];
+
+SemaphoreHandle_t xSemaphore = NULL;
 
 void app_main()
 {
@@ -30,6 +33,8 @@ void app_main()
 
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
+
+    xSemaphore = xSemaphoreCreateMutex();
 
     // connect to wifi by data stored in fs
     if (fs_init()) {
@@ -57,7 +62,7 @@ void app_main()
 
   connected:
     crawl_lottery_data(dis_val);
-
+    
     display_init();
 
     return;

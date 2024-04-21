@@ -15,7 +15,7 @@
 
 #include "7-segment-led-display.h"
 
-#define CRAWL_PER_SEC 30
+#define CRAWL_PER_SEC 10
 #define MAX_HTTP_OUTPUT_BUFFER 2048
 static const char *TAG = "HTTP_CLIENT";
 
@@ -35,7 +35,8 @@ static uint8_t led_v[] = {
     DIS_0, DIS_1, DIS_2, DIS_3, DIS_4, DIS_5, DIS_6, DIS_7,
     DIS_8, DIS_9
 };
-
+extern dis_val_t seg_dis_val[4];
+extern SemaphoreHandle_t xSemaphore;
 
 static char *crawl_lottery_web(char *buf)
 {
@@ -213,8 +214,9 @@ static void crawl_lottery_data_task(void *arg)
 
     /* loop forever per CRAWL_PER_SEC */
     while (1) {
+		
 		if ((lottery_data = crawl_lottery_web(web_page)) == NULL) {
-			vTaskDelay(10 * 1000 / portTICK_RATE_MS);
+			//vTaskDelay(10 * 1000 / portTICK_RATE_MS);
 			continue;		// shouldn't occur
 		}
 		
@@ -225,6 +227,11 @@ static void crawl_lottery_data_task(void *arg)
 		amount_to_led_bits(amount, dis_val);
 		// show me the led code data
 		ESP_LOG_BUFFER_HEX(TAG, dis_val, 4);
+
+		xSemaphoreTake( xSemaphore, portMAX_DELAY );
+        memcpy(seg_dis_val, dis_val, sizeof(seg_dis_val));
+        xSemaphoreGive( xSemaphore );
+		
 		memset(web_page, 0, MAX_HTTP_OUTPUT_BUFFER);
 		
 		vTaskDelay(CRAWL_PER_SEC * 1000 / portTICK_RATE_MS);
