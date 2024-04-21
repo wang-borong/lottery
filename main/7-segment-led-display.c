@@ -31,6 +31,7 @@ static const char *TAG = "7-segment-led-display";
 #define TIMER_RELOAD      true
 
 dis_val_t dis_val[4] = { DIS_Blank, DIS_Blank, DIS_Blank, DIS_Blank };
+//dis_val_t dis_val[4] = { DIS_A, DIS_B, DIS_C, DIS_D };
 
 static void esp_gpio_init()
 {
@@ -42,26 +43,30 @@ static void esp_gpio_init()
     io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
 }
+#define SEG_DALEY   1
 
 static void gpio_send_to_595(uint8_t byte)
 {
     int i;
 
     for (i = 8; i > 0; i--) {
-	gpio_set_level(DIS_595_DIO, (byte >> 7));
-	/*
-	 * Setting gpio must be delay 2 us, but we don't have us delay.
-	 * Thus we print log to delay, don't remove it. :)
-	 */
-	ESP_LOGI(TAG, "Set gpio delay");
+        gpio_set_level(DIS_595_DIO, (byte >> 7));
+        /*
+            * Setting gpio must be delay 2 us, but we don't have us delay.
+            * Thus we print log to delay, don't remove it. :)
+            */
+        //ESP_LOGI(TAG, "Set gpio delay");
+        os_delay_us(SEG_DALEY);
 
-	/* 595 rise edge, indicate one data bit is sent to 595 */
-	gpio_set_level(DIS_595_SCLK, 0);
-	ESP_LOGI(TAG, "Set gpio delay");
-	gpio_set_level(DIS_595_SCLK, 1);
-	ESP_LOGI(TAG, "Set gpio delay");
+        /* 595 rise edge, indicate one data bit is sent to 595 */
+        gpio_set_level(DIS_595_SCLK, 0);
+        //ESP_LOGI(TAG, "Set gpio delay");
+        os_delay_us(SEG_DALEY);
+        gpio_set_level(DIS_595_SCLK, 1);
+        //ESP_LOGI(TAG, "Set gpio delay");
+        os_delay_us(SEG_DALEY);
 
-	byte <<= 1;
+        byte <<= 1;
     }
 }
 
@@ -69,9 +74,11 @@ static void lock_595_data()
 {
     /* lock data to 595 register */
     gpio_set_level(DIS_595_RCLK, 0);
-    ESP_LOGI(TAG, "Set gpio delay");
+    //ESP_LOGI(TAG, "Set gpio delay");
+    os_delay_us(SEG_DALEY);
     gpio_set_level(DIS_595_RCLK, 1);
-    ESP_LOGI(TAG, "Set gpio delay");
+    //ESP_LOGI(TAG, "Set gpio delay");
+    os_delay_us(SEG_DALEY);
 }
 
 static void display_one_bit(dis_val_t dis_bit, uint8_t pos)
@@ -79,16 +86,17 @@ static void display_one_bit(dis_val_t dis_bit, uint8_t pos)
     uint8_t byte = dis_bit;
 
     gpio_send_to_595(byte);
-    gpio_send_to_595(0x80 >> pos);
+    gpio_send_to_595(0x08 >> pos);
     lock_595_data();
 }
 
 static void display_four_bit(dis_val_t *dis_bits)
 {
     int i;
-    for (i = 0; i < 8; i++)
-	display_one_bit(dis_bits[i], i);
+    for (i = 0; i < 4; i++)
+	    display_one_bit(dis_bits[i], i);
 }
+
 
 static void display_scan(void *arg)
 {
@@ -96,11 +104,14 @@ static void display_scan(void *arg)
     display_four_bit(dis_val);
 }
 
+
 static void display_scan_timer_init()
 {
+
     hw_timer_init(display_scan, (void *) dis_val);
-    ESP_LOGI(TAG, "scan dispaly per 1ms");
-    hw_timer_alarm_us(1000, TIMER_RELOAD);
+    ESP_LOGI(TAG, "scan dispaly per 200us");
+    hw_timer_alarm_us(200, TIMER_RELOAD);
+  
 }
 
 void display_init()

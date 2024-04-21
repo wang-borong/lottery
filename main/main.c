@@ -21,6 +21,7 @@
 #include "crawl_web.h"
 
 static const char *TAG = "MAIN";
+extern dis_val_t dis_val[4];
 
 void app_main()
 {
@@ -57,7 +58,7 @@ void app_main()
   connected:
     crawl_lottery_data(dis_val);
 
-    //display_init();
+    display_init();
 
     return;
 }
